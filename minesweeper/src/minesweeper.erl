@@ -1,0 +1,4 @@
+-module(minesweeper).
+
+-export([]).
+
