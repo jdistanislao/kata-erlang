@@ -1,14 +1,9 @@
 minesweeper
 =====
 
-An escript
+http://codingdojo.org/kata/Minesweeper/
 
-Build
+Run Tests
 -----
 
-    $ rebar3 escriptize
-
-Run
----
-
-    $ _build/default/bin/minesweeper
+    $ rebar3 eunit
