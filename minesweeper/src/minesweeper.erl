@@ -1,6 +1,7 @@
 -module(minesweeper).
 
--export([new/2, get/2, find_mines/1, set_mine/2]).
+-export([new/2, get/2, find_mines/1]).
+-export([set_mine/2]).
 
 -define(MINE_VALUE, -1000).
 -define(MINE_STR, "*").
@@ -19,11 +20,32 @@ get(I, F) ->
   end.
 
 find_mines(F) ->
-  F.
+  Find = fun(I, V) ->
+    case V =:= ?MINE_VALUE of 
+      true -> V;
+      _    -> sum(V, get_value(I-1, F)) + sum(V, get_value(I+1, F))
+    end
+  end,
+  array:map(Find, F).
+
 
 %%
 %% Utils
 %%
 
+get_value(I, _) when I < 0 ->
+  0;
+get_value(I, F) ->
+  case I < array:size(F) of
+    true -> array:get(I, F);
+    _    -> 0
+  end.
+
 set_mine(I, F) ->
   array:set(I, ?MINE_VALUE, F).
+
+sum(X, V) when V =:= ?MINE_VALUE ->
+  X+1;
+sum(X, _) ->
+  X.
+%%  io:format("index: ~p, value: ~p~n", [I, V]),
