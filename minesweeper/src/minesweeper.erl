@@ -28,18 +28,46 @@ get(I, F) ->
   end.
 
 find_mines(F) ->
-  Find = fun(I, V) ->
+  Find = fun(X, Y, V) ->
     case V =:= ?MINE_VALUE of 
       true -> V;
-      _    -> sum(V, get_value(I-1, F)) + sum(V, get_value(I+1, F))
+      _    -> cell_points(X, Y, V, F)
     end
   end,
-  array:map(Find, F).
+  array:map(fun(Y, A) -> array:map(fun(X, V) -> Find(X, Y, V) end, A) end, F).
 
 
 %%
 %% Utils
 %%
+
+cell_points(X, Y, V, F) ->
+  Coords = coords_around(X, Y),
+  SumFn = fun({Xc, Yc}, Acc) -> sum(Acc, get_value(Yc, array_get(Xc, F))) end,
+  lists:foldl(SumFn, V, Coords).
+
+coords_around(X, Y) ->
+  C = [ 
+    {X, Y-1},
+    {X+1, Y-1},
+    {X+1, Y},
+    {X+1, Y+1},
+    {X, Y+1},
+    {X-1, Y+1},
+    {X-1, Y},
+    {X-1, Y-1}
+  ],
+  io:format("~p~n", [C]),
+  C.
+  
+array_get(I, _) when I < 0 ->
+  array:new();
+array_get(I, A) ->
+  case I < array:size(A) of
+    true -> array:get(I, A);
+    _    -> array:new()
+  end.
+
 
 get_value(I, _) when I < 0 ->
   0;
@@ -59,4 +87,3 @@ sum(X, V) when V =:= ?MINE_VALUE ->
   X+1;
 sum(X, _) ->
   X.
-%%  io:format("index: ~p, value: ~p~n", [I, V]),
