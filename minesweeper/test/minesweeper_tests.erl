@@ -2,10 +2,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-invalid_index_test() ->
-  F = minesweeper:new(1, []),
-  ?assertEqual({error, out_of_bound}, minesweeper:get(-1, F)).
-
 single_row_no_mines_test() ->
   F = minesweeper:new(10, []),
   ?assertEqual({ok, 0}, minesweeper:get(0, F)),
@@ -27,3 +23,8 @@ single_row_with_multiple_mines_test() ->
   ?assertEqual({ok, 2}, minesweeper:get(1, F)),
   ?assertEqual({ok, 1}, minesweeper:get(4, F)),
   ?assertEqual({ok, 0}, minesweeper:get(5, F)).
+
+field_with_no_mines_test() ->
+  Mines = [],
+  F = minesweeper:new(3, 3, Mines),
+  ?assertEqual({ok, 0}, minesweeper:get({1,1}, F)).
