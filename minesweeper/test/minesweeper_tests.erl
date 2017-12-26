@@ -5,6 +5,10 @@
 -define(MINE_VALUE, -1000).
 -define(MINE_STR, "*").
 
+field_from_file_test() ->
+  F = minesweeper:new("./test/input.txt"),
+  ?assertEqual("*", get({0,0}, F)),
+  ?assertEqual("*", get({1,2}, F)).
 
 field_with_no_mines_test() ->
   Mines = [],
