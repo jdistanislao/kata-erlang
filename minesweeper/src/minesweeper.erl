@@ -17,8 +17,6 @@ new(File) ->
   F.
 
 new(X, Y, M) ->
-  %io:format("X:~p - Y:~p ~n", [X, Y]),
-  %io:format(M),
   ArrayGen = fun(S) -> array:new([{size,S}, {fixed,true}, {default,0}]) end,
   F = array:new([{size,X}, {fixed,true}, {default, ArrayGen(Y)}]),
   lists:foldl(fun minesweeper:set_mine/2, F, M).
@@ -41,7 +39,6 @@ find_mines(F) ->
 from_file(IO) ->
   Lines = read_file(io:get_line(IO, ''), IO, []),
   FieldsData = parse_lines(Lines, []),
-  %io:format(FieldsData),
   lists:map(fun({{X, Y}, M}) -> new(X, Y, M) end, FieldsData).
 
 read_file({error, _}, _, Acc) ->
@@ -59,7 +56,8 @@ parse_lines([H|T], Acc) ->
 		  parse_lines(T, [F | Acc]);
     _          -> [Ha|Ta] = Acc,
                   {{X, Y}, _} = Ha,
-		  Mines = mines_coords([H|T], 0, []),
+		  Mines = mines_coords(lists:sublist([H|T], Y), 0, []),
+		  io:format(Mines),
 		  L = sublist([H|T], Y+1),
 		  parse_lines(L, [{{X,Y},Mines}|Ta])
   end.
@@ -70,20 +68,21 @@ sublist(L, I) ->
   lists:sublist(L, I, length(L)).
 
 to_dimensions(L) ->
-  [{X, _}, {Y, _}] = lists:map(fun string:to_integer/1, string:split(L, " ")),
+  [{Y, _}, {X, _}] = lists:map(fun string:to_integer/1, string:split(L, " ")),
   {X, Y}.
 
 mines_coords([], _, Acc) ->
   Acc;
 mines_coords([H|T], Y, Acc) ->
-  Mines = map_mines(H, Y, Acc),
+  Mines = map_mines(H, 0, Y, Acc),
   mines_coords(T, Y+1, Mines).
 
 
-map_mines(L, Y, Acc) ->
+map_mines(L, X, Y, Acc) ->
   case string:str(L, ?MINE_STR) of
     0   -> Acc;
-    Pos -> map_mines(string:slice(L, Pos), Y, [{Pos-1, Y}|Acc])
+    Pos -> NewX = X + (Pos-1), 
+	   map_mines(string:slice(L, Pos), Pos, Y, [{NewX, Y}|Acc])
   end.
 
 %% print(F) ->
