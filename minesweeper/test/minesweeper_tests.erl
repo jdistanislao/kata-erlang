@@ -7,8 +7,9 @@
 
 field_from_file_test() ->
   F = minesweeper:new("./test/input.txt"),
-  ?assertEqual("*", get({0,0}, F)),
-  ?assertEqual("*", get({1,2}, F)).
+  ?assertEqual(1, length(F)),
+  ?assertEqual("*", get({0,0}, lists:nth(1,F))),
+  ?assertEqual("*", get({1,2}, lists:nth(1,F))).
 
 field_with_no_mines_test() ->
   Mines = [],
