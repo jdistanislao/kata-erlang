@@ -47,7 +47,7 @@ messages_are_shown_in_reverse_time_order_test() ->
 
 alice_could_not_post_messages_to_bob_timeline_test() ->
     Refs = start_tl([alice, bob]),
-    [{_, AliceToken}, {_, _}] = Refs,
+    [{_, AliceToken}, _] = Refs,
     timeline:post(bob, AliceToken, "not allowed"),
     timeline:post(alice, AliceToken, "first"),
     {ok, BobMessages} = timeline:get_messages(bob),
@@ -56,7 +56,8 @@ alice_could_not_post_messages_to_bob_timeline_test() ->
     ?assertMatch(["first"], AliceMessages),
     stop_tl(Refs).
 
-%%alice_can_view_bob_timeline_test() ->
-%%    ?assert(false).
-%%
+%%Useless :)
+alice_can_view_bob_timeline_test() ->
+    ?assert(true).
+
 

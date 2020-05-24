@@ -8,6 +8,7 @@
 
 -define(SERVER, ?MODULE).
 
+-record(msg, {content, timestamp}).
 -record(tl_state, {user, token, messages}).
 
 %%%===================================================================
@@ -36,12 +37,14 @@ init([User, Token]) ->
     State =  #tl_state{user = User, token= Token, messages = []},
     {ok, State}.
 
-handle_call({get_messages}, _From, State = #tl_state{messages = M}) ->
-    {reply, {ok, M}, State}.
+handle_call({get_messages}, _From, State = #tl_state{messages = CurrentMessages}) ->
+    Messages = extract_messages_content(CurrentMessages),
+    {reply, {ok, Messages}, State}.
 
 handle_cast({post, Token, Message}, State = #tl_state{token = T, messages = CurrentMessages}) ->
     NewState = case Token =:= T of
-                   true -> State#tl_state{messages = [Message|CurrentMessages]};
+                   true -> NewMessage = create_new_message(Message),
+                            State#tl_state{messages = [NewMessage|CurrentMessages]};
                    _    -> State
                end,
     {noreply, NewState}.
@@ -58,3 +61,9 @@ code_change(_OldVsn, State = #tl_state{}, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+create_new_message(Content) ->
+    #msg{content = Content, timestamp = erlang:monotonic_time()}.
+
+extract_messages_content(Messages) ->
+    SortedMessages = lists:sort(fun(#msg{timestamp = T1}, #msg{timestamp = T2}) -> T1 > T2 end, Messages),
+    lists:map(fun(#msg{content = C}) -> C end, SortedMessages).
