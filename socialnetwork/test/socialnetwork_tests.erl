@@ -3,9 +3,16 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+start_tl(User) ->
+    timeline:start(User).
+
+stop_tl(Tl) ->
+    ?assertMatch(ok, gen_server:stop(Tl)).
+
 alice_can_create_her_timeline_test() ->
-    {ok, Pid} = timeline:start(alice),
-    ?assert(is_pid(Pid)).
+    {ok, Pid} = start_tl(alice),
+    ?assert(is_pid(Pid)),
+    stop_tl(Pid).
 
 %%alice_can_view_her_timeline_test() ->
 %%    ?assert(false).
