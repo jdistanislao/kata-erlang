@@ -50,21 +50,20 @@ handle_call({get_messages}, _From, State = #tl_state{messages = UsrM, subscritpi
     AllMessages = [UsrM | SubsMessages],
     {reply, {ok, lists:concat(AllMessages)}, State}.
 
-handle_cast({post, Token, Message}, State = #tl_state{token = T, messages = CurrentMessages}) ->
-    NewState = case Token =:= T of
-                   true -> NewMessage = create_new_message(Message),
-                            State#tl_state{messages = [NewMessage|CurrentMessages]};
-                   _    -> State
-               end,
-    {noreply, NewState};
 
-handle_cast({subscribe, Token, Followee}, State = #tl_state{token = T, subscritpions = S}) ->
-    NewState = case Token =:= T of
-                   true -> NewSubscritpions = add_new_subscription(Followee, S),
-                            State#tl_state{subscritpions = NewSubscritpions};
-                   _    -> State
-               end,
-    {noreply, NewState}.
+handle_cast({post, Token, Message}, State = #tl_state{token = T, messages = CurrentMessages}) when Token =:= T ->
+    NewMessage = create_new_message(Message),
+    NewState =State#tl_state{messages = [NewMessage|CurrentMessages]},
+    {noreply, NewState};
+handle_cast({post, _, _}, State) ->
+    {noreply, State};
+
+handle_cast({subscribe, Token, Followee}, State = #tl_state{token = T, subscritpions = S}) when Token =:= T ->
+    NewSubscritpions = add_new_subscription(Followee, S),
+    NewState = State#tl_state{subscritpions = NewSubscritpions},
+    {noreply, NewState};
+handle_cast({subscribe, _, _}, State) ->
+    {noreply, State}.
 
 handle_info(_Info, State = #tl_state{}) ->
     {noreply, State}.
