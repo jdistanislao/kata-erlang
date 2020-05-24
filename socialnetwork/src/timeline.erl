@@ -4,7 +4,7 @@
 
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1]).
+-export([start/1, get_messages/1, post/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -17,6 +17,12 @@
 start(User) ->
     start_link(User).
 
+get_messages(User) ->
+    gen_server:call(User, {get_messages}).
+
+post(User, Message) ->
+    gen_server:cast(User, {post, Message}).
+
 %%%===================================================================
 %%% Spawning and gen_server implementation
 %%%===================================================================
@@ -28,11 +34,12 @@ init([User]) ->
     State =  #tl_state{user = User, messages = []},
     {ok, State}.
 
-handle_call(_Request, _From, State = #tl_state{}) ->
-    {reply, ok, State}.
+handle_call({get_messages}, _From, State = #tl_state{messages = M}) ->
+    {reply, {ok, M}, State}.
 
-handle_cast(_Request, State = #tl_state{}) ->
-    {noreply, State}.
+handle_cast({post, Message}, State = #tl_state{messages = CurrentMessages}) ->
+    NewState = State#tl_state{messages = [Message|CurrentMessages]},
+    {noreply, NewState}.
 
 handle_info(_Info, State = #tl_state{}) ->
     {noreply, State}.
