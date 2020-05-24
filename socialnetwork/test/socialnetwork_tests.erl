@@ -60,4 +60,26 @@ alice_could_not_post_messages_to_bob_timeline_test() ->
 alice_can_view_bob_timeline_test() ->
     ?assert(true).
 
+charlie_can_subscribe_to_alice_timeline_test() ->
+    Refs = start_tl([alice, charlie, bob]),
+    [{_, AliceToken}, {_, CharlieToken}, {_, BobToken}] = Refs,
+    timeline:post(bob, BobToken, "first B"),
+    timeline:post(alice, AliceToken, "first A"),
+    timeline:post(charlie, CharlieToken, "first C"),
+    timeline:subscribe(charlie, CharlieToken, [alice, bob]),
+    {ok, Messages} = timeline:get_messages(charlie),
+    ?assertMatch(["first C", "first A", "first B"], Messages),
+    stop_tl(Refs).
+
+prevent_multiple_subscribe_to_same_timeline_test() ->
+    Refs = start_tl([alice, charlie]),
+    [{_, AliceToken}, {_, CharlieToken}] = Refs,
+    timeline:post(alice, AliceToken, "first A"),
+    timeline:post(charlie, CharlieToken, "first C"),
+    timeline:subscribe(charlie, CharlieToken, [alice, alice]),
+    timeline:subscribe(charlie, CharlieToken, [alice]),
+    {ok, Messages} = timeline:get_messages(charlie),
+    ?assertMatch(["first C", "first A"], Messages),
+    stop_tl(Refs).
+
 
