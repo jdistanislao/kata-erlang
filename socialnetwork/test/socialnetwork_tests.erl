@@ -99,8 +99,9 @@ user_can_send_private_messages_test() ->
     Refs = start_tl([alice]),
     [{_, AliceToken}] = Refs,
     timeline:send_private_message(mallory, alice, "Hi from Mallory"),
+    timeline:send_private_message(bob, alice, "Hi from Bob"),
     {ok, AlicePrivateMessages} = timeline:get_private_messages(alice, AliceToken),
-    ?assertMatch([{mallory, "Hi from Mallory"}], AlicePrivateMessages),
+    ?assertMatch([{bob, "Hi from Bob"}, {mallory, "Hi from Mallory"}], AlicePrivateMessages),
     stop_tl(Refs).
 
 

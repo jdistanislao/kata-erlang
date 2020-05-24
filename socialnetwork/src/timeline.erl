@@ -53,6 +53,7 @@ start_link(User) ->
 init([User, Token]) ->
     State = #tl_state{user=User, token=Token, messages=[], private_messages=[], subscritpions=[]},
     {ok, State}.
+
 %%%===================================================================
 %%% get_messages
 %%%===================================================================
@@ -64,6 +65,7 @@ handle_call({get_messages}, _From, State = #tl_state{messages = UsrM, subscritpi
     SubsMessages = lists:map(RetrieveSubsMessages, S),
     AllMessages = [UsrM | SubsMessages],
     {reply, {ok, lists:concat(AllMessages)}, State};
+
 %%%===================================================================
 %%% get_private_messages
 %%%===================================================================
@@ -71,6 +73,7 @@ handle_call({get_private_messages, Token}, _From, State = #tl_state{token = T, p
     {reply, {ok, M}, State};
 handle_call({get_private_messages, _}, _From, State)  ->
     {reply, {error, not_allowed}, State}.
+
 %%%===================================================================
 %%% post
 %%%===================================================================
@@ -80,6 +83,7 @@ handle_cast({post, Token, Message}, State = #tl_state{token = T, messages = Curr
     {noreply, NewState};
 handle_cast({post, _, _}, State) ->
     {noreply, State};
+
 %%%===================================================================
 %%% subscribe
 %%%===================================================================
@@ -89,6 +93,7 @@ handle_cast({subscribe, Token, Followee}, State = #tl_state{token = T, subscritp
     {noreply, NewState};
 handle_cast({subscribe, _, _}, State) ->
     {noreply, State};
+
 %%%===================================================================
 %%% private_message
 %%%===================================================================
