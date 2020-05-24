@@ -4,18 +4,20 @@
 -include_lib("eunit/include/eunit.hrl").
 
 start_tl(Users) ->
-    StartTimelines = fun(User, Pids) ->
-        {ok, Pid} = timeline:start(User),
-        [Pid | Pids]
+    StartTimelines = fun(User, Refs) ->
+        {ok, Ref} = timeline:start(User),
+        [Ref | Refs]
         end,
     lists:foldl(StartTimelines, [], Users).
 
 stop_tl(Timelines) ->
-    lists:foreach(fun(Tl) -> ?assertMatch(ok, gen_server:stop(Tl)) end, Timelines).
+    lists:foreach(fun({Tl, _}) -> ?assertMatch(ok, gen_server:stop(Tl)) end, Timelines).
 
 alice_can_create_her_timeline_test() ->
     Refs = start_tl([alice]),
-    ?assert(is_pid(lists:last(Refs))),
+    {Pid, Ref} = lists:last(Refs),
+    ?assert(is_pid(Pid)),
+    ?assert(is_reference(Ref)),
     stop_tl(Refs).
 
 alice_can_view_her_timeline_test() ->

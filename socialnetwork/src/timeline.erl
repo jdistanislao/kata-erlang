@@ -8,7 +8,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(tl_state, {user, messages}).
+-record(tl_state, {user, token, messages}).
 
 %%%===================================================================
 %%% API
@@ -28,10 +28,12 @@ post(User, Message) ->
 %%%===================================================================
 
 start_link(User) ->
-    gen_server:start_link({local, User}, ?MODULE, [User], []).
+    Token = make_ref(),
+    {ok, Pid} = gen_server:start_link({local, User}, ?MODULE, [User, Token], []),
+    {ok, {Pid, Token}}.
 
-init([User]) ->
-    State =  #tl_state{user = User, messages = []},
+init([User, Token]) ->
+    State =  #tl_state{user = User, token= Token, messages = []},
     {ok, State}.
 
 handle_call({get_messages}, _From, State = #tl_state{messages = M}) ->
