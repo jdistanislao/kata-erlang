@@ -82,4 +82,25 @@ prevent_multiple_subscribe_to_same_timeline_test() ->
     ?assertMatch(["first C", "first A"], Messages),
     stop_tl(Refs).
 
+user_can_view_its_private_messages_test() ->
+    Refs = start_tl([alice]),
+    [{_, AliceToken}] = Refs,
+    {ok, AliceMessages} = timeline:get_private_messages(alice, AliceToken),
+    ?assertMatch([], AliceMessages),
+    stop_tl(Refs).
+
+user_cant_view_other_users_private_messages_test() ->
+    Refs = start_tl([alice]),
+    {error, Response} = timeline:get_private_messages(alice, "AnotherUserToken"),
+    ?assertMatch(not_allowed, Response),
+    stop_tl(Refs).
+
+user_can_send_private_messages_test() ->
+    Refs = start_tl([alice]),
+    [{_, AliceToken}] = Refs,
+    timeline:send_private_message(mallory, alice, "Hi from Mallory"),
+    {ok, AlicePrivateMessages} = timeline:get_private_messages(alice, AliceToken),
+    ?assertMatch([{mallory, "Hi from Mallory"}], AlicePrivateMessages),
+    stop_tl(Refs).
+
 
