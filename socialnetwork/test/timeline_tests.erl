@@ -1,4 +1,4 @@
--module(socialnetwork_tests).
+-module(timeline_tests).
 -author("japs").
 
 -include_lib("eunit/include/eunit.hrl").
