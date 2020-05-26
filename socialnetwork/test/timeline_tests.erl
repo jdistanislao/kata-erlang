@@ -9,7 +9,10 @@
 
 posting_test_() ->
     [
-        {"Posting tests", ?SETUP(fun alice_can_create_her_timeline_instantiator/1)}
+        {"Posting tests", [
+            {"One", ?SETUP(fun alice_can_create_her_timeline_test_/1)},
+            {"two", ?SETUP(fun alice_can_create_her_timeline_test_/1)}
+        ]}
     ].
 
 setup() ->
@@ -24,14 +27,10 @@ teardown(TlRefs) ->
     lists:foreach(fun({Tl, _}) -> ?assertMatch(ok, gen_server:stop(Tl)) end, TlRefs).
 
 
-
-alice_can_create_her_timeline_instantiator(TlRefs) ->
+alice_can_create_her_timeline_test_(TlRefs) ->
     [{Pid, Token}, _, _] = TlRefs,
-    [
-        ?_assert(is_pid(Pid)),
-        ?_assert(is_reference(Token))
-    ].
-
+    ?_assert(is_pid(Pid)),
+    ?_assert(is_reference(Token)).
 
 
 %%alice_can_create_her_timeline_test() ->
