@@ -18,14 +18,13 @@ start(User) ->
 
 get_messages(User) ->
     {ok, Messages} = gen_server:call(User, {get_messages}),
-    SortedMessages = lists:map(fun(#msg{content = C, mentions = M}) -> {C,M} end, sort_messages(Messages)),
+    SortedMessages = sort_messages(Messages),
     {ok, SortedMessages}.
 
 get_private_messages(User, Token) ->
     Response = gen_server:call(User, {get_private_messages, Token}),
     case Response of
-        {ok, Messages} -> MapFn = fun(#msg{content = C, from = F, mentions = M}) -> {F,C,M} end,
-                            SortedMessages = lists:map(MapFn, sort_messages(Messages)),
+        {ok, Messages} -> SortedMessages = sort_messages(Messages),
                             {ok, SortedMessages};
                     _  -> Response
     end.
@@ -75,8 +74,8 @@ handle_call({get_private_messages, _}, _From, State)  ->
 %%%===================================================================
 %%% post
 %%%===================================================================
-handle_cast({post, Token, Message}, State = #tl_state{token = T, messages = CurrentMessages}) when Token =:= T ->
-    NewMessage = create_new_message(Message),
+handle_cast({post, Token, Message}, State = #tl_state{user = U, token = T, messages = CurrentMessages}) when Token =:= T ->
+    NewMessage = create_new_message(Message, U),
     NewState = State#tl_state{messages = [NewMessage|CurrentMessages]},
     {noreply, NewState};
 handle_cast({post, _, _}, State) ->
@@ -113,9 +112,6 @@ code_change(_OldVsn, State = #tl_state{}, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-create_new_message(Content) ->
-    Mentions = find_mentions(Content),
-    #msg{content = Content, mentions = Mentions}.
 create_new_message(Content, From) ->
     Mentions = find_mentions(Content),
     #msg{content = Content, mentions = Mentions, from = From}.

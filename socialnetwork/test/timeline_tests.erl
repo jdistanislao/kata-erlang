@@ -2,6 +2,7 @@
 -author("japs").
 
 -include_lib("eunit/include/eunit.hrl").
+-include("../src/tl_records.hrl").
 
 -define(SETUP(Fn), {setup, fun setup/0, fun teardown/1, Fn}).
 -define(USERS, [alice, bob, charlie]).
@@ -90,7 +91,10 @@ messages_are_shown_in_reverse_time_order_test_(TlRefs) ->
     timeline:post(alice, Token, "first"),
     timeline:post(alice, Token, "second"),
     Response = timeline:get_messages(alice),
-    ?_assertMatch({ok, [{"second",_},{"first",_}]}, Response).
+    [
+        ?_assertMatch({ok, _}, Response),
+        ?_assertMatch(["second","first"], extract(content, Response))
+    ].
 
 alice_can_post_messages_to_her_personal_timeline_test_(TlRefs) ->
     [{_, Token}, _, _] = TlRefs,
@@ -98,7 +102,8 @@ alice_can_post_messages_to_her_personal_timeline_test_(TlRefs) ->
     GetResponse = timeline:get_messages(alice),
     [
         ?_assertMatch(ok, PostResponse),
-        ?_assertMatch({ok, [{"first",_}]}, GetResponse)
+        ?_assertMatch({ok, _}, GetResponse),
+        ?_assertMatch(["first"], extract(content, GetResponse))
     ].
 
 alice_could_not_post_messages_to_bob_timeline_test_(TlRefs) ->
@@ -109,7 +114,8 @@ alice_could_not_post_messages_to_bob_timeline_test_(TlRefs) ->
     AliceMessages = timeline:get_messages(alice),
     [
         ?_assertMatch({ok, []}, BobMessages),
-        ?_assertMatch({ok, [{"first",_}]}, AliceMessages)
+        ?_assertMatch({ok, _}, AliceMessages),
+        ?_assertMatch(["first"], extract(content, AliceMessages))
     ].
 
 charlie_can_subscribe_to_alice_timeline_test_(TlRefs) ->
@@ -119,7 +125,10 @@ charlie_can_subscribe_to_alice_timeline_test_(TlRefs) ->
     timeline:post(charlie, CharlieToken, "first C"),
     timeline:subscribe(charlie, CharlieToken, [alice, bob]),
     Messages = timeline:get_messages(charlie),
-    ?_assertMatch({ok, [{"first C",_}, {"first A",_}, {"first B",_}]}, Messages).
+    [
+        ?_assertMatch({ok, _}, Messages),
+        ?_assertMatch(["first C", "first A", "first B"], extract(content, Messages))
+    ].
 
 prevent_multiple_subscribe_to_same_timeline_test_(TlRefs) ->
     [{_, AliceToken}, _, {_, CharlieToken}] = TlRefs,
@@ -128,7 +137,10 @@ prevent_multiple_subscribe_to_same_timeline_test_(TlRefs) ->
     timeline:subscribe(charlie, CharlieToken, [alice, alice]),
     timeline:subscribe(charlie, CharlieToken, [alice]),
     Messages = timeline:get_messages(charlie),
-    ?_assertMatch({ok, [{"first C",_}, {"first A",_}]}, Messages).
+    [
+        ?_assertMatch({ok, _}, Messages),
+        ?_assertMatch(["first C", "first A"], extract(content, Messages))
+    ].
 
 user_can_view_its_private_messages_test_(TlRefs) ->
     [{_, AliceToken}, _, _] = TlRefs,
@@ -144,7 +156,10 @@ user_can_send_private_messages_test_(TlRefs) ->
     timeline:send_private_message(mallory, alice, "Hi from Mallory"),
     timeline:send_private_message(bob, alice, "Hi from Bob"),
     Messages = timeline:get_private_messages(alice, AliceToken),
-    ?_assertMatch({ok, [{bob, "Hi from Bob", _}, {mallory, "Hi from Mallory", _}]}, Messages).
+    [
+        ?_assertMatch({ok, _}, Messages),
+        ?_assertMatch([{bob, "Hi from Bob"}, {mallory, "Hi from Mallory"}], extract({from,content}, Messages))
+    ].
 
 
 messages_without_at_do_not_contain_mentions_test_(TlRefs) ->
@@ -153,7 +168,7 @@ messages_without_at_do_not_contain_mentions_test_(TlRefs) ->
     GetResponse = timeline:get_messages(alice),
     [
         ?_assertMatch(ok, PostResponse),
-        ?_assertMatch({ok, [{"first foo",[]}]}, GetResponse)
+        ?_assertMatch([[]], extract(mentions, GetResponse))
     ].
 
 user_can_mention_another_one_using_at_char_test_(TlRefs) ->
@@ -162,7 +177,7 @@ user_can_mention_another_one_using_at_char_test_(TlRefs) ->
     GetResponse = timeline:get_messages(alice),
     [
         ?_assertMatch(ok, PostResponse),
-        ?_assertMatch({ok, [{_, [bob]}]}, GetResponse)
+        ?_assertMatch([[bob]], extract(mentions, GetResponse))
     ].
 
 mention_char_must_be_followed_by_a_username_test_(TlRefs) ->
@@ -171,7 +186,7 @@ mention_char_must_be_followed_by_a_username_test_(TlRefs) ->
     GetResponse = timeline:get_messages(alice),
     [
         ?_assertMatch(ok, PostResponse),
-        ?_assertMatch({ok, [{_, []}]}, GetResponse)
+        ?_assertMatch([[]], extract(mentions, GetResponse))
     ].
 
 mentioned_user_must_exists_test_(TlRefs) ->
@@ -180,5 +195,24 @@ mentioned_user_must_exists_test_(TlRefs) ->
     GetResponse = timeline:get_messages(alice),
     [
         ?_assertMatch(ok, PostResponse),
-        ?_assertMatch({ok, [{_, []}]}, GetResponse)
+        ?_assertMatch([[]], extract(mentions, GetResponse))
     ].
+
+%%
+%% UTILS
+%%
+
+extract(What, {_, Messages}) ->
+    extract(What, Messages, []).
+
+extract(content, [H|T], Acc) ->
+    #msg{content = C} = H,
+    extract(content, T, [C|Acc]);
+extract({from,content}, [H|T], Acc) ->
+    #msg{from = F, content = C} = H,
+    extract({from,content}, T, [{F,C}|Acc]);
+extract(mentions, [H|T], Acc) ->
+    #msg{mentions = M} = H,
+    extract(mentions, T, [M|Acc]);
+extract(_, [], Acc) ->
+    lists:reverse(Acc).
