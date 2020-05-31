@@ -116,9 +116,11 @@ code_change(_OldVsn, State = #tl_state{}, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 create_new_message(Content) ->
-    #msg{content = Content, timestamp = erlang:monotonic_time()}.
+    Mentions = find_mentions(Content),
+    #msg{content = Content, mentions = Mentions,  timestamp = erlang:monotonic_time()}.
 create_new_message(Content, From) ->
-    #msg{content = Content, timestamp = erlang:monotonic_time(), from = From}.
+    Mentions = find_mentions(Content),
+    #msg{content = Content, mentions = Mentions, from = From, timestamp = erlang:monotonic_time()}.
 
 sort_messages(Messages) ->
     lists:sort(fun(#msg{timestamp = T1}, #msg{timestamp = T2}) -> T1 > T2 end, Messages).
@@ -127,3 +129,37 @@ add_new_subscription(Followee, CurrentSubscriptions) ->
     UniqueFollowee = lists:usort(Followee),
     NewSubs = [F || F <- UniqueFollowee, lists:member(F, CurrentSubscriptions) == false],
     lists:concat([NewSubs, CurrentSubscriptions]).
+
+find_mentions(Content) ->
+    find_mentions(string:split(Content, " ", all), []).
+
+find_mentions([H|T], L) ->
+    case find_user(H) of
+        nouser -> find_mentions(T, L);
+        User   -> find_mentions(T, [User | L])
+    end;
+find_mentions([], L) ->
+    L.
+
+find_user(User) ->
+    case is_user_mention(User) of
+        false -> nouser;
+        _     -> UserRefName = list_to_atom(string:slice(User, 1)),
+                    case user_exists(UserRefName) of
+                        true -> UserRefName;
+                        _    -> nouser
+                    end
+    end.
+
+
+is_user_mention(User) ->
+    case string:find(User, "@") of
+        nomatch -> false;
+        _       -> string:length(User) > 1
+    end.
+
+user_exists(User) ->
+    case whereis(User) of
+        undefined -> false;
+        _         -> true
+    end.

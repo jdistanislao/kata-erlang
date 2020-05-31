@@ -41,13 +41,15 @@ all_test_() ->
                 ?SETUP(fun user_can_send_private_messages_test_/1)}
         ]},
         {"Mentions", [
+            {"messages_without_at_do_not_contain_mentions_test_",
+                ?SETUP(fun messages_without_at_do_not_contain_mentions_test_/1)},
             {"User can mention another one using @",
-                ?SETUP(fun user_can_mention_another_one_using_at_char/1)}
-%%            {"Mention char must be followed by a username",
-%%                ?SETUP(fun fail/1)},
-%%            {"Mentioned users must exist",
-%%                ?SETUP(fun fail/1)},
-%%            {"Mentioned users can view the message they are metioned from",
+                ?SETUP(fun user_can_mention_another_one_using_at_char_test_/1)},
+            {"Mention char must be followed by a username",
+                ?SETUP(fun mention_char_must_be_followed_by_a_username_test_/1)},
+            {"Mentioned user must exists",
+                ?SETUP(fun mentioned_user_must_exists_test_/1)}
+%%            {"Mentioned users can view the message they are mentioned from",
 %%                ?SETUP(fun fail/1)}
         ]}
     ].
@@ -144,11 +146,39 @@ user_can_send_private_messages_test_(TlRefs) ->
     Messages = timeline:get_private_messages(alice, AliceToken),
     ?_assertMatch({ok, [{bob, "Hi from Bob", _}, {mallory, "Hi from Mallory", _}]}, Messages).
 
-user_can_mention_another_one_using_at_char(TlRefs) ->
+
+messages_without_at_do_not_contain_mentions_test_(TlRefs) ->
+    [{_, Token}, _, _] = TlRefs,
+    PostResponse = timeline:post(alice, Token, "first foo"),
+    GetResponse = timeline:get_messages(alice),
+    [
+        ?_assertMatch(ok, PostResponse),
+        ?_assertMatch({ok, [{"first foo",[]}]}, GetResponse)
+    ].
+
+user_can_mention_another_one_using_at_char_test_(TlRefs) ->
     [{_, Token}, _, _] = TlRefs,
     PostResponse = timeline:post(alice, Token, "mention @bob"),
     GetResponse = timeline:get_messages(alice),
     [
         ?_assertMatch(ok, PostResponse),
         ?_assertMatch({ok, [{_, [bob]}]}, GetResponse)
+    ].
+
+mention_char_must_be_followed_by_a_username_test_(TlRefs) ->
+    [{_, Token}, _, _] = TlRefs,
+    PostResponse = timeline:post(alice, Token, "mention @ bob"),
+    GetResponse = timeline:get_messages(alice),
+    [
+        ?_assertMatch(ok, PostResponse),
+        ?_assertMatch({ok, [{_, []}]}, GetResponse)
+    ].
+
+mentioned_user_must_exists_test_(TlRefs) ->
+    [{_, Token}, _, _] = TlRefs,
+    PostResponse = timeline:post(alice, Token, "mention @nonexistinguser"),
+    GetResponse = timeline:get_messages(alice),
+    [
+        ?_assertMatch(ok, PostResponse),
+        ?_assertMatch({ok, [{_, []}]}, GetResponse)
     ].
