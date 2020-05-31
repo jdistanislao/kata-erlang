@@ -8,7 +8,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(msg, {content, timestamp, from}).
+-record(msg, {content, from, mentions, timestamp}).
 -record(tl_state, {user, token, messages, private_messages, subscriptions}).
 
 %%%===================================================================
@@ -20,13 +20,13 @@ start(User) ->
 
 get_messages(User) ->
     {ok, Messages} = gen_server:call(User, {get_messages}),
-    SortedMessages = lists:map(fun(#msg{content = C}) -> C end, sort_messages(Messages)),
+    SortedMessages = lists:map(fun(#msg{content = C, mentions = M}) -> {C,M} end, sort_messages(Messages)),
     {ok, SortedMessages}.
 
 get_private_messages(User, Token) ->
     Response = gen_server:call(User, {get_private_messages, Token}),
     case Response of
-        {ok, Messages} -> MapFn = fun(#msg{content = C, from = F}) -> {F,C} end,
+        {ok, Messages} -> MapFn = fun(#msg{content = C, from = F, mentions = M}) -> {F,C,M} end,
                             SortedMessages = lists:map(MapFn, sort_messages(Messages)),
                             {ok, SortedMessages};
                     _  -> Response

@@ -39,6 +39,16 @@ all_test_() ->
                 ?SETUP(fun user_cant_view_other_users_private_messages_test_/1)},
             {"User can send private messages",
                 ?SETUP(fun user_can_send_private_messages_test_/1)}
+        ]},
+        {"Mentions", [
+            {"User can mention another one using @",
+                ?SETUP(fun user_can_mention_another_one_using_at_char/1)}
+%%            {"Mention char must be followed by a username",
+%%                ?SETUP(fun fail/1)},
+%%            {"Mentioned users must exist",
+%%                ?SETUP(fun fail/1)},
+%%            {"Mentioned users can view the message they are metioned from",
+%%                ?SETUP(fun fail/1)}
         ]}
     ].
 
@@ -61,6 +71,9 @@ teardown(TlRefs) ->
 %% TESTS DEFINITIONS
 %%
 
+fail(_) ->
+    ?_assert(false).
+
 alice_can_create_her_timeline_test_(TlRefs) ->
     [{Pid, Token}, _, _] = TlRefs,
     ?_assert(is_pid(Pid)),
@@ -75,7 +88,7 @@ messages_are_shown_in_reverse_time_order_test_(TlRefs) ->
     timeline:post(alice, Token, "first"),
     timeline:post(alice, Token, "second"),
     Response = timeline:get_messages(alice),
-    ?_assertMatch({ok, ["second","first"]}, Response).
+    ?_assertMatch({ok, [{"second",_},{"first",_}]}, Response).
 
 alice_can_post_messages_to_her_personal_timeline_test_(TlRefs) ->
     [{_, Token}, _, _] = TlRefs,
@@ -83,7 +96,7 @@ alice_can_post_messages_to_her_personal_timeline_test_(TlRefs) ->
     GetResponse = timeline:get_messages(alice),
     [
         ?_assertMatch(ok, PostResponse),
-        ?_assertMatch({ok, ["first"]}, GetResponse)
+        ?_assertMatch({ok, [{"first",_}]}, GetResponse)
     ].
 
 alice_could_not_post_messages_to_bob_timeline_test_(TlRefs) ->
@@ -94,7 +107,7 @@ alice_could_not_post_messages_to_bob_timeline_test_(TlRefs) ->
     AliceMessages = timeline:get_messages(alice),
     [
         ?_assertMatch({ok, []}, BobMessages),
-        ?_assertMatch({ok, ["first"]}, AliceMessages)
+        ?_assertMatch({ok, [{"first",_}]}, AliceMessages)
     ].
 
 charlie_can_subscribe_to_alice_timeline_test_(TlRefs) ->
@@ -104,7 +117,7 @@ charlie_can_subscribe_to_alice_timeline_test_(TlRefs) ->
     timeline:post(charlie, CharlieToken, "first C"),
     timeline:subscribe(charlie, CharlieToken, [alice, bob]),
     Messages = timeline:get_messages(charlie),
-    ?_assertMatch({ok, ["first C", "first A", "first B"]}, Messages).
+    ?_assertMatch({ok, [{"first C",_}, {"first A",_}, {"first B",_}]}, Messages).
 
 prevent_multiple_subscribe_to_same_timeline_test_(TlRefs) ->
     [{_, AliceToken}, _, {_, CharlieToken}] = TlRefs,
@@ -113,7 +126,7 @@ prevent_multiple_subscribe_to_same_timeline_test_(TlRefs) ->
     timeline:subscribe(charlie, CharlieToken, [alice, alice]),
     timeline:subscribe(charlie, CharlieToken, [alice]),
     Messages = timeline:get_messages(charlie),
-    ?_assertMatch({ok, ["first C", "first A"]}, Messages).
+    ?_assertMatch({ok, [{"first C",_}, {"first A",_}]}, Messages).
 
 user_can_view_its_private_messages_test_(TlRefs) ->
     [{_, AliceToken}, _, _] = TlRefs,
@@ -129,4 +142,13 @@ user_can_send_private_messages_test_(TlRefs) ->
     timeline:send_private_message(mallory, alice, "Hi from Mallory"),
     timeline:send_private_message(bob, alice, "Hi from Bob"),
     Messages = timeline:get_private_messages(alice, AliceToken),
-    ?_assertMatch({ok, [{bob, "Hi from Bob"}, {mallory, "Hi from Mallory"}]}, Messages).
+    ?_assertMatch({ok, [{bob, "Hi from Bob", _}, {mallory, "Hi from Mallory", _}]}, Messages).
+
+user_can_mention_another_one_using_at_char(TlRefs) ->
+    [{_, Token}, _, _] = TlRefs,
+    PostResponse = timeline:post(alice, Token, "mention @bob"),
+    GetResponse = timeline:get_messages(alice),
+    [
+        ?_assertMatch(ok, PostResponse),
+        ?_assertMatch({ok, [{_, [bob]}]}, GetResponse)
+    ].
