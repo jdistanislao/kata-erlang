@@ -1,15 +1,13 @@
 -module(timeline).
-
 -behaviour(gen_server).
+
+-include("tl_records.hrl").
 
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1, get_messages/1, get_private_messages/2, post/3, send_private_message/3, subscribe/3]).
 
 -define(SERVER, ?MODULE).
-
--record(msg, {content, from, mentions, timestamp}).
--record(tl_state, {user, token, messages, private_messages, subscriptions}).
 
 %%%===================================================================
 %%% API
@@ -51,7 +49,7 @@ start_link(User) ->
     {ok, {Pid, Token}}.
 
 init([User, Token]) ->
-    State = #tl_state{user=User, token=Token, messages=[], private_messages=[], subscriptions =[]},
+    State = #tl_state{user=User, token=Token},
     {ok, State}.
 
 %%%===================================================================
@@ -117,10 +115,10 @@ code_change(_OldVsn, State = #tl_state{}, _Extra) ->
 %%%===================================================================
 create_new_message(Content) ->
     Mentions = find_mentions(Content),
-    #msg{content = Content, mentions = Mentions,  timestamp = erlang:monotonic_time()}.
+    #msg{content = Content, mentions = Mentions}.
 create_new_message(Content, From) ->
     Mentions = find_mentions(Content),
-    #msg{content = Content, mentions = Mentions, from = From, timestamp = erlang:monotonic_time()}.
+    #msg{content = Content, mentions = Mentions, from = From}.
 
 sort_messages(Messages) ->
     lists:sort(fun(#msg{timestamp = T1}, #msg{timestamp = T2}) -> T1 > T2 end, Messages).
