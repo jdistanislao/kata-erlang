@@ -9,7 +9,7 @@
 -define(SERVER, ?MODULE).
 
 -record(msg, {content, timestamp, from}).
--record(tl_state, {user, token, messages, private_messages, subscritpions}).
+-record(tl_state, {user, token, messages, private_messages, subscriptions}).
 
 %%%===================================================================
 %%% API
@@ -51,13 +51,13 @@ start_link(User) ->
     {ok, {Pid, Token}}.
 
 init([User, Token]) ->
-    State = #tl_state{user=User, token=Token, messages=[], private_messages=[], subscritpions=[]},
+    State = #tl_state{user=User, token=Token, messages=[], private_messages=[], subscriptions =[]},
     {ok, State}.
 
 %%%===================================================================
 %%% get_messages
 %%%===================================================================
-handle_call({get_messages}, _From, State = #tl_state{messages = UsrM, subscritpions = S}) ->
+handle_call({get_messages}, _From, State = #tl_state{messages = UsrM, subscriptions = S}) ->
     RetrieveSubsMessages = fun(Followee) ->
         {ok, SubM} = gen_server:call(Followee, {get_messages}),
         SubM
@@ -87,9 +87,9 @@ handle_cast({post, _, _}, State) ->
 %%%===================================================================
 %%% subscribe
 %%%===================================================================
-handle_cast({subscribe, Token, Followee}, State = #tl_state{token = T, subscritpions = S}) when Token =:= T ->
+handle_cast({subscribe, Token, Followee}, State = #tl_state{token = T, subscriptions = S}) when Token =:= T ->
     NewSubscritpions = add_new_subscription(Followee, S),
-    NewState = State#tl_state{subscritpions = NewSubscritpions},
+    NewState = State#tl_state{subscriptions = NewSubscritpions},
     {noreply, NewState};
 handle_cast({subscribe, _, _}, State) ->
     {noreply, State};
