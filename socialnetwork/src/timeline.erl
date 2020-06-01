@@ -5,7 +5,7 @@
 
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1, get_messages/1, get_private_messages/2, post/3, send_private_message/3, subscribe/3]).
+-export([start/1, get_messages/1, get_private_messages/2, post/3, send_private_message/3, subscribe/3, get_mentions/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -38,6 +38,14 @@ subscribe(User, Token, Followee) ->
 send_private_message(User, To, Message) ->
     gen_server:cast(To, {private_message, User, Message}).
 
+get_mentions(User, Token) ->
+    Response = gen_server:call(User, {get_mentions, Token}),
+    case Response of
+        {ok, Messages} -> SortedMessages = sort_messages(Messages),
+                            {ok, SortedMessages};
+        _              -> Response
+    end.
+
 %%%===================================================================
 %%% Spawning and gen_server implementation
 %%%===================================================================
@@ -69,6 +77,14 @@ handle_call({get_messages}, _From, State = #tl_state{messages = UsrM, subscripti
 handle_call({get_private_messages, Token}, _From, State = #tl_state{token = T, private_messages = M}) when Token =:= T ->
     {reply, {ok, M}, State};
 handle_call({get_private_messages, _}, _From, State)  ->
+    {reply, {error, not_allowed}, State};
+
+%%%===================================================================
+%%% get_mentions
+%%%===================================================================
+handle_call({get_mentions, Token}, _From, State = #tl_state{token = T, mentions = M}) when Token =:= T ->
+    {reply, {ok, M}, State};
+handle_call({get_mentions, _}, _From, State)  ->
     {reply, {error, not_allowed}, State}.
 
 %%%===================================================================
@@ -77,6 +93,7 @@ handle_call({get_private_messages, _}, _From, State)  ->
 handle_cast({post, Token, Message}, State = #tl_state{user = U, token = T, messages = CurrentMessages}) when Token =:= T ->
     NewMessage = create_new_message(Message, U),
     NewState = State#tl_state{messages = [NewMessage|CurrentMessages]},
+    notify_mention(U, NewMessage),
     {noreply, NewState};
 handle_cast({post, _, _}, State) ->
     {noreply, State};
@@ -97,6 +114,13 @@ handle_cast({subscribe, _, _}, State) ->
 handle_cast({private_message, From, Message}, State = #tl_state{private_messages = P}) ->
     Msg = create_new_message(Message, From),
     NewState = State#tl_state{private_messages = [Msg|P]},
+    {noreply, NewState};
+
+%%%===================================================================
+%%% new_mention
+%%%===================================================================
+handle_cast({new_mention, Message}, State = #tl_state{mentions = M}) ->
+    NewState = State#tl_state{mentions = [Message|M]},
     {noreply, NewState}.
 
 handle_info(_Info, State = #tl_state{}) ->
@@ -157,3 +181,7 @@ user_exists(User) ->
         undefined -> false;
         _         -> true
     end.
+
+notify_mention(From, Message = #msg{mentions = Destinations}) ->
+    Msg = Message#msg{from = From, mentions = []},
+    lists:foreach(fun(To) -> abcast = gen_server:abcast(To, {new_mention, Msg}) end, Destinations).

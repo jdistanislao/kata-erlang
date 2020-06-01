@@ -7,9 +7,9 @@
 -define(SETUP(Fn), {setup, fun setup/0, fun teardown/1, Fn}).
 -define(USERS, [alice, bob, charlie]).
 
-%%
+%%===================================================================
 %% TESTS DESCRIPTIONS
-%%
+%%===================================================================
 
 all_test_() ->
     [
@@ -51,13 +51,13 @@ all_test_() ->
             {"Mentioned user must exists",
                 ?SETUP(fun mentioned_user_must_exists_test_/1)},
             {"Mentioned users can view the message they are mentioned from",
-                ?SETUP(fun fail/1)}
+                ?SETUP(fun mentioned_users_can_view_the_message_they_are_mentioned_from_test_/1)}
         ]}
     ].
 
-%%
+%%===================================================================
 %% SETUP
-%%
+%%===================================================================
 
 setup() ->
     StartTimelines = fun(User, TlRefs) ->
@@ -70,9 +70,9 @@ setup() ->
 teardown(TlRefs) ->
     lists:foreach(fun({Tl, _}) -> ?assertMatch(ok, gen_server:stop(Tl)) end, TlRefs).
 
-%%
+%%===================================================================
 %% TESTS DEFINITIONS
-%%
+%%===================================================================
 
 fail(_) ->
     ?_assert(false).
@@ -198,9 +198,20 @@ mentioned_user_must_exists_test_(TlRefs) ->
         ?_assertMatch([[]], extract(mentions, GetResponse))
     ].
 
-%%
+mentioned_users_can_view_the_message_they_are_mentioned_from_test_(TlRefs) ->
+    [{_, AliceToken}, {_, BobToken}, {_, CharlieToken}] = TlRefs,
+    timeline:post(alice, AliceToken, "mention @bob and @charlie"),
+    timer:sleep(10),
+    BobMessages = timeline:get_mentions(bob, BobToken),
+    CharlieMessages = timeline:get_mentions(charlie, CharlieToken),
+    [
+        ?_assertMatch([{alice, "mention @bob and @charlie"}], extract({from,content}, BobMessages)),
+        ?_assertMatch([{alice, "mention @bob and @charlie"}], extract({from,content}, CharlieMessages))
+    ].
+
+%%===================================================================
 %% UTILS
-%%
+%%===================================================================
 
 extract(What, {_, Messages}) ->
     extract(What, Messages, []).

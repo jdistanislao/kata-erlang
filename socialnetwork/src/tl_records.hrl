@@ -13,5 +13,6 @@
     token,
     messages = [],
     private_messages = [],
-    subscriptions = []
+    subscriptions = [],
+    mentions = []
 }).
