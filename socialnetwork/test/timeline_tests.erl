@@ -13,7 +13,7 @@
 
 all_test_() ->
     [
-        {"Reading tests", [
+        {"Reading", [
             {"Alice can create her timeline",
                 ?SETUP(fun alice_can_create_her_timeline_test_/1)},
             {"Alice can view her timeline",
@@ -21,13 +21,13 @@ all_test_() ->
             {"Messages are shown in reverse time order",
                 ?SETUP(fun messages_are_shown_in_reverse_time_order_test_/1)}
         ]},
-        {"Posting tests", [
+        {"Posting", [
             {"Alice can post messages to her personal timeline",
                 ?SETUP(fun alice_can_post_messages_to_her_personal_timeline_test_/1)},
             {"Alice could not post messages to bob timeline",
                 ?SETUP(fun alice_could_not_post_messages_to_bob_timeline_test_/1)}
         ]},
-        {"Following tests", [
+        {"Following", [
             {"Charlie can subscribe to Alice timeline",
                 ?SETUP(fun charlie_can_subscribe_to_alice_timeline_test_/1)},
             {"Prevent multiple subscribe to same timeline",
@@ -49,9 +49,9 @@ all_test_() ->
             {"Mention char must be followed by a username",
                 ?SETUP(fun mention_char_must_be_followed_by_a_username_test_/1)},
             {"Mentioned user must exists",
-                ?SETUP(fun mentioned_user_must_exists_test_/1)}
-%%            {"Mentioned users can view the message they are mentioned from",
-%%                ?SETUP(fun fail/1)}
+                ?SETUP(fun mentioned_user_must_exists_test_/1)},
+            {"Mentioned users can view the message they are mentioned from",
+                ?SETUP(fun fail/1)}
         ]}
     ].
 

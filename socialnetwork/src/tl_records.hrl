@@ -1,6 +1,7 @@
 -author("japs").
 
 -record(msg, {
+    id = make_ref(),
     from,
     content,
     mentions = [],

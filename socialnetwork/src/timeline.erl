@@ -56,7 +56,7 @@ init([User, Token]) ->
 %%%===================================================================
 handle_call({get_messages}, _From, State = #tl_state{messages = UsrM, subscriptions = S}) ->
     RetrieveSubsMessages = fun(Followee) ->
-        {ok, SubM} = gen_server:call(Followee, {get_messages}),
+        {ok, SubM} = timeline:get_messages(Followee),
         SubM
         end,
     SubsMessages = lists:map(RetrieveSubsMessages, S),
