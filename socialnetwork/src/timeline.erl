@@ -176,4 +176,4 @@ user_exists(User) ->
 
 notify_mention(From, Message = #msg{mentions = Destinations}) ->
     Msg = Message#msg{from = From, mentions = []},
-    lists:foreach(fun(To) -> abcast = gen_server:abcast(To, {new_mention, Msg}) end, Destinations).
+    lists:foreach(fun(To) -> ok = gen_server:cast(To, {new_mention, Msg}) end, Destinations).
