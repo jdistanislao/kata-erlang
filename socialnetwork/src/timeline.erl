@@ -159,22 +159,14 @@ find_mentions([H|T], L) ->
 find_mentions([], L) ->
     L.
 
-find_user(User) ->
-    case is_user_mention(User) of
-        false -> nouser;
-        _     -> UserRefName = list_to_atom(string:slice(User, 1)),
-                    case user_exists(UserRefName) of
-                        true -> UserRefName;
-                        _    -> nouser
-                    end
-    end.
-
-
-is_user_mention(User) ->
-    case string:find(User, "@") of
-        nomatch -> false;
-        _       -> string:length(User) > 1
-    end.
+find_user(User = [H|T]) when [H] =:= "@" andalso length(T) >= 1 ->
+    UserRefName = list_to_atom(string:slice(User, 1)),
+    case user_exists(UserRefName) of
+        true -> UserRefName;
+        _    -> nouser
+    end;
+find_user(_) ->
+    nouser.
 
 user_exists(User) ->
     case whereis(User) of

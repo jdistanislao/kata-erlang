@@ -74,9 +74,6 @@ teardown(TlRefs) ->
 %% TESTS DEFINITIONS
 %%===================================================================
 
-fail(_) ->
-    ?_assert(false).
-
 alice_can_create_her_timeline_test_(TlRefs) ->
     [{Pid, Token}, _, _] = TlRefs,
     ?_assert(is_pid(Pid)),
