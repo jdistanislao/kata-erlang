@@ -86,6 +86,7 @@ alice_can_view_her_timeline_test_(_) ->
 messages_are_shown_in_reverse_time_order_test_(TlRefs) ->
     [{_, Token}, _, _] = TlRefs,
     timeline:post(alice, Token, "first"),
+    timer:sleep(1),
     timeline:post(alice, Token, "second"),
     Response = timeline:get_messages(alice),
     [
@@ -118,7 +119,9 @@ alice_could_not_post_messages_to_bob_timeline_test_(TlRefs) ->
 charlie_can_subscribe_to_alice_timeline_test_(TlRefs) ->
     [{_, AliceToken}, {_, BobToken}, {_, CharlieToken}] = TlRefs,
     timeline:post(bob, BobToken, "first B"),
+    timer:sleep(1),
     timeline:post(alice, AliceToken, "first A"),
+    timer:sleep(1),
     timeline:post(charlie, CharlieToken, "first C"),
     timeline:subscribe(charlie, CharlieToken, [alice, bob]),
     Messages = timeline:get_messages(charlie),
@@ -130,6 +133,7 @@ charlie_can_subscribe_to_alice_timeline_test_(TlRefs) ->
 prevent_multiple_subscribe_to_same_timeline_test_(TlRefs) ->
     [{_, AliceToken}, _, {_, CharlieToken}] = TlRefs,
     timeline:post(alice, AliceToken, "first A"),
+    timer:sleep(1),
     timeline:post(charlie, CharlieToken, "first C"),
     timeline:subscribe(charlie, CharlieToken, [alice, alice]),
     timeline:subscribe(charlie, CharlieToken, [alice]),
@@ -151,6 +155,7 @@ user_cant_view_other_users_private_messages_test_(_) ->
 user_can_send_private_messages_test_(TlRefs) ->
     [{_, AliceToken}, _, _] = TlRefs,
     timeline:send_private_message(mallory, alice, "Hi from Mallory"),
+    timer:sleep(1),
     timeline:send_private_message(bob, alice, "Hi from Bob"),
     Messages = timeline:get_private_messages(alice, AliceToken),
     [
@@ -198,7 +203,7 @@ mentioned_user_must_exists_test_(TlRefs) ->
 mentioned_users_can_view_the_message_they_are_mentioned_from_test_(TlRefs) ->
     [{_, AliceToken}, {_, BobToken}, {_, CharlieToken}] = TlRefs,
     timeline:post(alice, AliceToken, "mention @bob and @charlie"),
-    timer:sleep(10),
+    timer:sleep(1),
     BobMessages = timeline:get_mentions(bob, BobToken),
     CharlieMessages = timeline:get_mentions(charlie, CharlieToken),
     [
