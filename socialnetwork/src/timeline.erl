@@ -7,7 +7,6 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1, get_messages/1, get_private_messages/2, post/3, send_private_message/3, subscribe/3, get_mentions/2]).
 
--define(SERVER, ?MODULE).
 
 %%%===================================================================
 %%% API
