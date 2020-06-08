@@ -54,10 +54,8 @@ all_test_() ->
                 ?SETUP(fun mentioned_users_can_view_the_message_they_are_mentioned_from_test_/1)}
         ]},
         {"Links", [
-            {"A web resources starts with http:// or https://",
-                ?SETUP(fun web_resources_starts_with_https_test_/1)},
-            {"Web resource is reachable",
-                ?SETUP(fun web_resource_is_reachable_test_/1)},
+            {"A web resource must be reachable",
+                ?SETUP(fun a_web_resource_must_be_reachable_test_/1)},
             {"Alice can link to a clickable web resource in a message",
                 ?SETUP(fun user_can_link_to_a_clickable_web_resource_in_a_message_test_/1)}
         ]}
@@ -219,14 +217,22 @@ mentioned_users_can_view_the_message_they_are_mentioned_from_test_(TlRefs) ->
         ?_assertMatch([{alice, "mention @bob and @charlie"}], extract({from,content}, CharlieMessages))
     ].
 
-web_resources_starts_with_https_test_(TlRefs) ->
-    erlang:error(not_implemented).
-
-web_resource_is_reachable_test_(TlRefs) ->
-    erlang:error(not_implemented).
+a_web_resource_must_be_reachable_test_(TlRefs) ->
+    [{_, Token}, _, _] = TlRefs,
+    timeline:post(alice, Token, "first http://foo.biz https://bar"),
+    GetResponse = timeline:get_messages(alice),
+    [
+        ?_assertMatch(["first http://foo.biz https://bar"], extract(content, GetResponse))
+    ].
 
 user_can_link_to_a_clickable_web_resource_in_a_message_test_(TlRefs) ->
-    erlang:error(not_implemented).
+    [{_, Token}, _, _] = TlRefs,
+    timeline:post(alice, Token, "first https://www.mozilla.org message"),
+    GetResponse = timeline:get_messages(alice),
+    [
+        ?_assertMatch(["first <a href=\"https://www.mozilla.org\">https://www.mozilla.org</a> message"],
+                        extract(content, GetResponse))
+    ].
 
 %%===================================================================
 %% UTILS

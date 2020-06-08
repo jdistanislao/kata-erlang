@@ -137,7 +137,8 @@ code_change(_OldVsn, State = #tl_state{}, _Extra) ->
 %%%===================================================================
 create_new_message(Content, From) ->
     Mentions = find_mentions(Content),
-    #msg{content = Content, mentions = Mentions, from = From}.
+    NewContent = parse_content(Content),
+    #msg{content = NewContent, mentions = Mentions, from = From}.
 
 sort_messages(Messages) ->
     lists:sort(fun(#msg{timestamp = T1}, #msg{timestamp = T2}) -> T1 > T2 end, Messages).
@@ -176,3 +177,42 @@ user_exists(User) ->
 notify_mention(From, Message = #msg{mentions = Destinations}) ->
     Msg = Message#msg{from = From, mentions = []},
     lists:foreach(fun(To) -> ok = gen_server:cast(To, {new_mention, Msg}) end, Destinations).
+
+parse_content(Content) ->
+    SplittedContent = string:split(Content, " ", all),
+    NewContent = find_web_resources(SplittedContent, []),
+    lists:concat(lists:join(" ", NewContent)).
+
+find_web_resources([H|T], L) ->
+    case is_web_resource(H) of
+        true -> case is_web_resource_reachable(H) of
+                    true -> Link = create_html_link(H),
+                            find_web_resources(T, [Link | L]);
+                    _    -> find_web_resources(T, [H | L])
+                end;
+        _    -> find_web_resources(T, [H | L])
+    end;
+find_web_resources([], L) ->
+    lists:reverse(L).
+
+is_web_resource(Resource) when length(Resource) > 8 ->
+    case string:find(Resource, "http://") of
+        nomatch -> case string:find(Resource, "https://") of
+                       nomatch -> false;
+                       _       -> true
+                   end;
+        _       -> true
+    end;
+is_web_resource(_) ->
+    false.
+
+is_web_resource_reachable(Resource) ->
+    % fake an http(s) request
+    % assuming a web resources if ends with .org.
+    L = length(Resource),
+    Domain = string:slice(Resource, L-4),
+    ".org" =:= Domain.
+
+create_html_link(Resource) ->
+    LinkData = ["<a href=\"", Resource, "\">", Resource, "</a>"],
+    unicode:characters_to_list(LinkData).
