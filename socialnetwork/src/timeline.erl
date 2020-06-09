@@ -136,8 +136,7 @@ code_change(_OldVsn, State = #tl_state{}, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 create_new_message(Content, From) ->
-    Mentions = find_mentions(Content),
-    NewContent = parse_content(Content),
+    {NewContent, Mentions} = parse(Content),
     #msg{content = NewContent, mentions = Mentions, from = From}.
 
 sort_messages(Messages) ->
@@ -148,40 +147,26 @@ add_new_subscription(Followee, CurrentSubscriptions) ->
     NewSubs = [F || F <- UniqueFollowee, lists:member(F, CurrentSubscriptions) == false],
     lists:concat([NewSubs, CurrentSubscriptions]).
 
-find_mentions(Content) ->
-    find_mentions(string:split(Content, " ", all), []).
+parse(Content) ->
+    SplittedContent = string:split(Content, " ", all),
+    Mentions = find_mentions(SplittedContent, []),
+    NewContent = find_web_resources(SplittedContent, []),
+    {NewContent, Mentions}.
 
-find_mentions([H|T], L) ->
-    case find_user(H) of
-        nouser -> find_mentions(T, L);
-        User   -> find_mentions(T, [User | L])
+find_mentions([[UH|UT]|T], L) when [UH] =:= "@" andalso length(UT) >= 1 ->
+    UserRefName = list_to_atom(string:slice([UH|UT], 1)),
+    case whereis(UserRefName) of
+        undefined   -> find_mentions(T, L);
+        _           -> find_mentions(T, [UserRefName | L])
     end;
+find_mentions([_|T], L) ->
+    find_mentions(T, L);
 find_mentions([], L) ->
     L.
-
-find_user(User = [H|T]) when [H] =:= "@" andalso length(T) >= 1 ->
-    UserRefName = list_to_atom(string:slice(User, 1)),
-    case user_exists(UserRefName) of
-        true -> UserRefName;
-        _    -> nouser
-    end;
-find_user(_) ->
-    nouser.
-
-user_exists(User) ->
-    case whereis(User) of
-        undefined -> false;
-        _         -> true
-    end.
 
 notify_mention(From, Message = #msg{mentions = Destinations}) ->
     Msg = Message#msg{from = From, mentions = []},
     lists:foreach(fun(To) -> ok = gen_server:cast(To, {new_mention, Msg}) end, Destinations).
-
-parse_content(Content) ->
-    SplittedContent = string:split(Content, " ", all),
-    NewContent = find_web_resources(SplittedContent, []),
-    lists:concat(lists:join(" ", NewContent)).
 
 find_web_resources([H|T], L) ->
     case is_web_resource(H) of
@@ -193,7 +178,7 @@ find_web_resources([H|T], L) ->
         _    -> find_web_resources(T, [H | L])
     end;
 find_web_resources([], L) ->
-    lists:reverse(L).
+    lists:concat(lists:join(" ", lists:reverse(L))).
 
 is_web_resource(Resource) when length(Resource) > 8 ->
     case string:find(Resource, "http://") of
@@ -207,8 +192,7 @@ is_web_resource(_) ->
     false.
 
 is_web_resource_reachable(Resource) ->
-    % fake an http(s) request
-    % assuming a web resources if ends with .org.
+    % fake an http(s) request assuming a web resources is valid if ends with .org.
     L = length(Resource),
     Domain = string:slice(Resource, L-4),
     ".org" =:= Domain.
