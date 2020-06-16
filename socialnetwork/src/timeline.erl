@@ -150,7 +150,7 @@ add_new_subscription(Followee, CurrentSubscriptions) ->
 parse(Content) ->
     SplittedContent = string:split(Content, " ", all),
     Mentions = find_mentions(SplittedContent, []),
-    NewContent = find_web_resources(SplittedContent, []),
+    NewContent = map_web_resources(SplittedContent, []),
     {NewContent, Mentions}.
 
 find_mentions([[UH|UT]|T], L) when [UH] =:= "@" andalso length(UT) >= 1 ->
@@ -168,17 +168,25 @@ notify_mention(From, Message = #msg{mentions = Destinations}) ->
     Msg = Message#msg{from = From, mentions = []},
     lists:foreach(fun(To) -> ok = gen_server:cast(To, {new_mention, Msg}) end, Destinations).
 
-find_web_resources([H|T], L) ->
-    case is_web_resource(H) of
-        true -> case is_web_resource_reachable(H) of
-                    true -> Link = create_html_link(H),
-                            find_web_resources(T, [Link | L]);
-                    _    -> find_web_resources(T, [H | L])
-                end;
-        _    -> find_web_resources(T, [H | L])
-    end;
-find_web_resources([], L) ->
+map_web_resources({ok, [H|T]}, L) ->
+    Link = create_html_link(H),
+    map_web_resources(T, [Link | L]);
+map_web_resources({nomatch, [H|T]}, L) ->
+    map_web_resources(T, [H | L]);
+map_web_resources([H|_] = Res, L) ->
+    Result = find_web_resources2(H),
+    map_web_resources({Result, Res}, L);
+map_web_resources([], L) ->
     lists:concat(lists:join(" ", lists:reverse(L))).
+
+find_web_resources2(Word) ->
+    case is_web_resource(Word) of
+        true -> case is_web_resource_reachable(Word) of
+                    true -> ok;
+                    _    -> nomatch
+                end;
+        _    -> nomatch
+    end.
 
 is_web_resource(Resource) when length(Resource) > 8 ->
     case string:find(Resource, "http://") of
