@@ -150,7 +150,7 @@ add_new_subscription(Followee, CurrentSubscriptions) ->
 parse(Content) ->
     SplittedContent = string:split(Content, " ", all),
     Mentions = find_mentions(SplittedContent, []),
-    NewContent = map_web_resources(SplittedContent, []),
+    NewContent = map_web_resources(SplittedContent),
     {NewContent, Mentions}.
 
 find_mentions([[UH|UT]|T], L) when [UH] =:= "@" andalso length(UT) >= 1 ->
@@ -168,42 +168,42 @@ notify_mention(From, Message = #msg{mentions = Destinations}) ->
     Msg = Message#msg{from = From, mentions = []},
     lists:foreach(fun(To) -> ok = gen_server:cast(To, {new_mention, Msg}) end, Destinations).
 
-map_web_resources({ok, [H|T]}, L) ->
-    Link = create_html_link(H),
-    map_web_resources(T, [Link | L]);
-map_web_resources({nomatch, [H|T]}, L) ->
-    map_web_resources(T, [H | L]);
-map_web_resources([H|_] = Res, L) ->
-    Result = find_web_resources2(H),
-    map_web_resources({Result, Res}, L);
-map_web_resources([], L) ->
-    lists:concat(lists:join(" ", lists:reverse(L))).
+map_web_resources(L) ->
+    TaggedList = lists:map(fun tag_word/1, L),
+    MappedList = lists:map(fun map_web/1, TaggedList),
+    lists:concat(lists:join(" ", MappedList)).
 
-find_web_resources2(Word) ->
-    case is_web_resource(Word) of
-        true -> case is_web_resource_reachable(Word) of
-                    true -> ok;
-                    _    -> nomatch
-                end;
-        _    -> nomatch
+tag_word(W) when length(W) > 8 ->
+    L = [fun is_http/1, fun is_https/1],
+    Res = lists:any(fun(F) -> F(W) end, L) andalso is_web_resource_reachable(W),
+    {Res, W};
+tag_word(W) ->
+    {false, W}.
+
+map_web({true, W}) ->
+    create_html_link(W);
+map_web({_, W}) ->
+    W.
+
+is_http(W) ->
+    case string:find(W, "http://") of
+        nomatch -> false;
+        _       -> true
     end.
 
-is_web_resource(Resource) when length(Resource) > 8 ->
-    case string:find(Resource, "http://") of
-        nomatch -> case string:find(Resource, "https://") of
-                       nomatch -> false;
-                       _       -> true
-                   end;
+is_https(W) ->
+    case string:find(W, "https://") of
+        nomatch -> false;
         _       -> true
-    end;
-is_web_resource(_) ->
-    false.
+    end.
 
-is_web_resource_reachable(Resource) ->
+is_web_resource_reachable(Resource) when length(Resource) > 4 ->
     % fake an http(s) request assuming a web resources is valid if ends with .org.
     L = length(Resource),
     Domain = string:slice(Resource, L-4),
-    ".org" =:= Domain.
+    ".org" =:= Domain;
+is_web_resource_reachable(_) ->
+    false.
 
 create_html_link(Resource) ->
     LinkData = ["<a href=\"", Resource, "\">", Resource, "</a>"],
